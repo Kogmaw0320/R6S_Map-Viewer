@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>R6S Map Viewer</title>
+    <style>
+        body { display: flex; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #111; color: #fff; height: 100vh; overflow: hidden; }
+        #sidebar { width: 240px; background: #222; height: 100vh; padding: 15px; box-sizing: border-box; overflow-y: auto; flex-shrink: 0; }
+        #sidebar::-webkit-scrollbar { width: 6px; }
+        #sidebar::-webkit-scrollbar-track { background: #1a1a1a; }
+        #sidebar::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+        #sidebar::-webkit-scrollbar-thumb:hover { background: #ffb703; }
+        #content { flex: 1; padding: 15px; text-align: center; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        .map-btn { display: block; width: 100%; padding: 10px; margin-bottom: 8px; background: #333; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; text-align: left; transition: all 0.15s ease-in-out; border-left: 0 solid transparent; }
+        .map-btn:hover, .map-btn.active { background: #444; border-left: 4px solid #ffb703; }
+        .floor-btn { padding: 8px 16px; margin: 4px; background: #2196F3; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; transition: all 0.15s ease-in-out; }
+        .floor-btn:hover, .floor-btn.active { background: #0b7dda; outline: 2px solid #fff; }
+        #floor-buttons { margin: 10px 0; min-height: 40px; }
+        .mode-btn { padding: 8px 16px; margin: 0 4px; background: #444; color: #fff; border: 1px solid #666; cursor: pointer; border-radius: 4px; font-weight: bold; transition: background 0.15s; }
+        .mode-btn.active { background: #ffb703; color: #000; border-color: #ffb703; }
+        #canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 10px; background: #151515; border-radius: 8px; }
+        canvas { border: 2px solid #444; box-shadow: 0px 0px 15px rgba(0,0,0,0.5); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #222; cursor: crosshair; max-width: 100%; max-height: 100%; display: block; transform: translateZ(0); will-change: transform; }
+        .clear-btn { padding: 8px 16px; background: #e63946; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px; transition: background 0.15s; }
+        .clear-btn:hover { background: #c32f3a; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2 style="color: #ffb703; margin-top: 0;">MAPS</h2>
+        <div id="map-box"></div>
+    </div>
+
+    <div id="content">
+        <h1 id="map-title" style="margin: 0 0 5px 0; font-size: 24px;">맵을 선택하세요</h1>
+        <div id="floor-buttons"></div>
+
+        <div style="margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+            <button id="btn-draw" class="mode-btn active" onclick="setMode('draw')">✏️ 그리기 모드</button>
+            <button id="btn-erase" class="mode-btn" onclick="setMode('erase')">🧽 지우개 모드</button>
+            <span style="color: #555;">|</span>
+            <span style="font-weight: bold; font-size: 14px;">색상:</span>
+            <input type="color" id="brush-color" value="#ff0000" style="cursor: pointer; width: 35px; height: 25px; border: none; border-radius: 4px; background: transparent;">
+            <span style="color: #555;">|</span>
+            <span style="font-weight: bold; font-size: 14px;">굵기: <span id="size-indicator" style="color: #ffb703;">5</span></span>
+            <input type="range" id="brush-size" min="2" max="30" value="5" style="cursor: pointer; width: 100px; accent-color: #2196F3;">
+            <span style="color: #555;">|</span>
+            <button class="clear-btn" onclick="clearCanvas()">전체 초기화</button>
+        </div>
+        <div id="canvas-container" style="flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 10px; background: #151515; border-radius: 8px;">
+            <canvas id="paintCanvas" width="1280" height="720" style="border: 2px solid #444; box-shadow: 0px 0px 15px rgba(0,0,0,0.5); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #222; cursor: crosshair; max-width: 100%; max-height: 100%; display: block;"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ⚙️ [유저 설정 구역] 새 맵 추가 및 모든 층수 제어는 여기만 수정하세요!
+        // ==========================================
+        const r6Config = {
+            // "맵 이름": { 지하, 1층, 2층, 3층, 옥상 유무 }
+            "오리건":            { hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "클럽하우스":        	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "영사관":            { hasB1: true,  has1F: true, has2F: true, has3F: false,  hasRoof: true },
+            "은행":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "별장":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "운하":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "도스토예프스키 카페": { hasB1: false, has1F: true, has2F: true, has3F: true,  hasRoof: true },
+            "국경":             	{ hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "마천루":            { hasB1: false,  has1F: true, has2F: true, has3F: false,  hasRoof: true },
+            "해안선":            { hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "테마파크":          	{ hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "빌라":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "오지":             	{ hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "요새":             	{ hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "나이트헤븐 연구소":  	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "소굴":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "에메랄드 평원":      { hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
+            "칼립소 카지노":      { hasB1: true,  has1F: true, has2F: true, has3F: false,  hasRoof: true }
+        };
+        const mapData = {};
+
+        Object.keys(r6Config).forEach(m => {
+            const config = r6Config[m];
+            mapData[m] = {};
+
+            // 1. 지하 설정
+            if (config.hasB1) mapData[m]["지하"] = `images/${m}_b1.png`;
+
+            // 2. 1층 설정
+            if (config.has1F) mapData[m]["1층"] = `images/${m}_1f.png`;
+
+            // 3. 2층 설정
+            if (config.has2F) mapData[m]["2층"] = `images/${m}_2f.png`;
+
+            // 4. 3층 설정
+            if (config.has3F) mapData[m]["3층"] = `images/${m}_3f.png`;
+
+            // 5. 옥상 설정
+            if (config.hasRoof) mapData[m]["옥상"] = `images/${m}_roof.png`;
+        });
+
+        let currentMap = "", currentMode = "draw", isDrawing = false, lastSelectedFloor = "1층";
+        const canvas = document.getElementById('paintCanvas'), ctx = canvas.getContext('2d');
+        const colorEl = document.getElementById('brush-color'), sizeEl = document.getElementById('brush-size'), sizeIndicator = document.getElementById('size-indicator');
+
+        let currentSize = sizeEl.value, currentColor = colorEl.value, useRightClickErase = false;
+
+        sizeEl.addEventListener('input', (e) => { currentSize = e.target.value; sizeIndicator.innerText = currentSize; });
+        colorEl.addEventListener('change', (e) => { currentColor = e.target.value; });
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        function initMapButtons() {
+            const box = document.getElementById('map-box');
+            Object.keys(mapData).forEach(name => {
+                const btn = document.createElement('button');
+                btn.className = 'map-btn';
+                btn.innerText = "📍 " + name;
+                btn.onclick = () => selectMap(name, btn);
+                box.appendChild(btn);
+            });
+        }
+        initMapButtons();
+
+        function selectMap(name, btnElement) {
+            currentMap = name;
+            document.getElementById('map-title').innerText = name;
+            document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active'));
+            if(btnElement) btnElement.classList.add('active');
+
+            const fDiv = document.getElementById('floor-buttons');
+            fDiv.innerHTML = ""; 
+            const floors = Object.keys(mapData[name]);
+            let targetFloor = floors.includes(lastSelectedFloor) ? lastSelectedFloor : floors[0];
+
+            floors.forEach(f => {
+                const btn = document.createElement('button');
+                btn.className = 'floor-btn';
+                if(f === targetFloor) btn.classList.add('active');
+                btn.innerText = f;
+                btn.onclick = () => {
+                    lastSelectedFloor = f; 
+                    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    changeFloor(f);
+                };
+                fDiv.appendChild(btn);
+            });
+            changeFloor(targetFloor);
+        }
+
+        function changeFloor(f) {
+            canvas.style.backgroundImage = "url('" + mapData[currentMap][f] + "')";
+            clearCanvas();
+        }
+
+        function setMode(m) {
+            currentMode = m;
+            document.getElementById('btn-draw').classList.toggle('active', m === 'draw');
+            document.getElementById('btn-erase').classList.toggle('active', m === 'erase');
+        }
+
+        function getCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (e.clientX - rect.left) * (canvas.width / rect.width),
+                y: (e.clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        canvas.addEventListener('mousedown', function(e) {
+            isDrawing = true;
+            useRightClickErase = (e.button === 2);
+            
+            ctx.beginPath();
+            ctx.lineCap = 'round'; 
+            ctx.lineJoin = 'round'; 
+            ctx.lineWidth = currentSize;
+
+            if (currentMode === 'erase' || useRightClickErase) {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.strokeStyle = 'rgba(0,0,0,1)';
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor; 
+            }
+
+            const p = getCoords(e);
+            ctx.moveTo(p.x, p.y);
+        });
+        canvas.addEventListener('mousemove', function(e) {
+            if (!isDrawing) return; 
+
+            const p = getCoords(e);
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke(); 
+        });
+
+        canvas.addEventListener('mouseup', () => { isDrawing = false; useRightClickErase = false; });
+        canvas.addEventListener('mouseout', () => { isDrawing = false; useRightClickErase = false; });
+
+        function clearCanvas() {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    </script>
+</body>
+</html>
