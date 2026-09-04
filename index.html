@@ -47,6 +47,112 @@
             <span style="color: #555;">|</span>
             <button class="clear-btn" onclick="clearCanvas()">전체 초기화</button>
         </div>
+        <div style="margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.3); max-width: 100%; overflow-x: auto;">
+            <button id="btn-stamp" class="mode-btn" onclick="setMode('stamp')">🎯 아이콘 모드</button>
+            <span style="color: #555;">|</span>
+            <span style="font-weight: bold; font-size: 14px;">아이콘 선택:</span>
+            <select id="stamp-selector" onchange="setMode('stamp')" style="background: #333; color: #fff; padding: 5px; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                <optgroup label="⚔️ 공격팀 (Attakers)">
+					<option value="images/operators/striker.png">스트라이커 (Striker)</option>
+                    <option value="images/operators/sledge.png">슬렛지 (Sledge)</option>
+                    <option value="images/operators/thatcher.png">대처 (Thatcher)</option>
+                    <option value="images/operators/ash.png">애쉬 (Ash)</option>
+                    <option value="images/operators/thermite.png">써마이트 (Thermite)</option>
+                    <option value="images/operators/twitch.png">트위치 (Twitch)</option>
+                    <option value="images/operators/montagne.png">몽타뉴 (Montagne)</option>
+                    <option value="images/operators/glaz.png">글라즈 (Glaz)</option>
+                    <option value="images/operators/fuze.png">퓨즈 (Fuze)</option>
+                    <option value="images/operators/blitz.png">블리츠 (Blitz)</option>
+                    <option value="images/operators/iq.png">아이큐 (IQ)</option>
+                    <option value="images/operators/buck.png">벅 (Buck)</option>
+                    <option value="images/operators/blackbeard.png">블랙비어드 (Blackbeard)</option>
+                    <option value="images/operators/capitao.png">카피탕 (Capitão)</option>
+                    <option value="images/operators/hibana.png">히바나 (Hibana)</option>
+                    <option value="images/operators/jackal.png">자칼 (Jackal)</option>
+                    <option value="images/operators/ying.png">잉 (Ying)</option>
+                    <option value="images/operators/zofia.png">조피아 (Zofia)</option>
+                    <option value="images/operators/dokkaebi.png">도깨비 (Dokkaebi)</option>
+                    <option value="images/operators/lion.png">라이언 (Lion)</option>
+                    <option value="images/operators/finka.png">핀카 (Finka)</option>
+                    <option value="images/operators/maverick.png">매버릭 (Maverick)</option>
+                    <option value="images/operators/nomad.png">노마드 (Nomad)</option>
+                    <option value="images/operators/gridlock.png">그리드락 (Gridlock)</option>
+                    <option value="images/operators/nook.png">뇌크 (Nøkk)</option>
+                    <option value="images/operators/amaru.png">아마루 (Amaru)</option>
+                    <option value="images/operators/kali.png">칼리 (Kali)</option>
+                    <option value="images/operators/iana.png">야나 (Iana)</option>
+                    <option value="images/operators/ace.png">에이스 (Ace)</option>
+                    <option value="images/operators/zero.png">제로 (Zero)</option>
+                    <option value="images/operators/flores.png">플로레스 (Flores)</option>
+                    <option value="images/operators/osa.png">오사 (Osa)</option>
+                    <option value="images/operators/sens.png">센스 (Sens)</option>
+                    <option value="images/operators/grim.png">그림 (Grim)</option>
+                    <option value="images/operators/brava.png">브라바 (Brava)</option>
+                    <option value="images/operators/ram.png">람 (Ram)</option>
+                    <option value="images/operators/deimos.png">데이모스 (Deimos)</option>
+					<option value="images/operators/rauora.png">라우오라 (Rauora)</option>
+					<option value="images/operators/solid snake.png">솔리드 스네이크 (Solid Snake)</option>
+                </optgroup>
+                <optgroup label="🛡️ 수비팀 (Defenders)">
+					<option value="images/operators/sentry.png">센트리 (Sentry)</option>
+                    <option value="images/operators/smoke.png">스모크 (Smoke)</option>
+                    <option value="images/operators/mute.png">뮤트 (Mute)</option>
+                    <option value="images/operators/castle.png">캐슬 (Castle)</option>
+                    <option value="images/operators/pulse.png">펄스 (Pulse)</option>
+                    <option value="images/operators/doc.png">닥 (Doc)</option>
+                    <option value="images/operators/rook.png">록 (Rook)</option>
+                    <option value="images/operators/kapkan.png">캅칸 (Kapkan)</option>
+                    <option value="images/operators/tachanka.png">타찬카 (Tachanka)</option>
+                    <option value="images/operators/jager.png">예거 (Jäger)</option>
+                    <option value="images/operators/bandit.png">밴딧 (Bandit)</option>
+                    <option value="images/operators/frost.png">프로스트 (Frost)</option>
+                    <option value="images/operators/valkyrie.png">발키리 (Valkyrie)</option>
+                    <option value="images/operators/caveira.png">카베이라 (Caveira)</option>
+                    <option value="images/operators/echo.png">에코 (Echo)</option>
+                    <option value="images/operators/mira.png">미라 (Mira)</option>
+                    <option value="images/operators/lesion.png">리전 (Lesion)</option>
+                    <option value="images/operators/ela.png">엘라 (Ela)</option>
+                    <option value="images/operators/vigil.png">비질 (Vigil)</option>
+                    <option value="images/operators/maestro.png">마에스트로 (Maestro)</option>
+                    <option value="images/operators/alibi.png">알리바이 (Alibi)</option>
+                    <option value="images/operators/clash.png">클래시 (Clash)</option>
+                    <option value="images/operators/kaid.png">카이드 (Kaid)</option>
+                    <option value="images/operators/mozzi.png">모찌 (Mozzie)</option>
+					<option value="images/operators/warden.png">워든 (Warden)</option>
+					<option value="images/operators/goyo.png">고요 (Goyo)</option>
+                    <option value="images/operators/wamai.png">와마이 (Wamai)</option>
+                    <option value="images/operators/oryx.png">오릭스 (Oryx)</option>
+                    <option value="images/operators/melusi.png">멜루시 (Melusi)</option>
+                    <option value="images/operators/aruni.png">아루니 (Aruni)</option>
+                    <option value="images/operators/thunderbird.png">썬더버드 (Thunderbird)</option>
+                    <option value="images/operators/thorn.png">쏜 (Thorn)</option>
+                    <option value="images/operators/azami.png">아자미(Azami)</option>
+                    <option value="images/operators/solis.png">솔리스 (Solis)</option>
+                    <option value="images/operators/fenrir.png">펜리르 (Fenrir)</option>
+                    <option value="images/operators/tubarao.png">투바랑 (Tubarão)</option>
+					<option value="images/operators/skopos.png">끼릭이 (Skopos)</option>
+					<option value="images/operators/denari.png">데나리 (Denari)</option>
+					<option value="images/operators/noor.png">누르 (Noor)</option>
+                </optgroup>
+                <optgroup label="💣 가젯류 (Gadgets)">
+                    <option value="images/gadgets/frag.png">세열 수류탄</option>
+                    <option value="images/gadgets/smoke_g.png">연막탄</option>
+                    <option value="images/gadgets/stun.png">섬광탄</option>
+                    <option value="images/gadgets/claymore.png">클레이모어</option>
+                    <option value="images/gadgets/breach.png">접착 폭약</option>
+                    <option value="images/gadgets/emp.png">소형 EMP</option>
+                    <option value="images/gadgets/hard_breach.png">보조 하드 브리칭 폭약</option>
+                    <option value="images/gadgets/c4.png">원격 제어 폭탄 (C4)</option>
+                    <option value="images/gadgets/barbed.png">철조망</option>
+                    <option value="images/gadgets/shield.png">이동식 방패</option>
+                    <option value="images/gadgets/camera.png">방탄 카메라</option>
+                    <option value="images/gadgets/impact.png">충격 수류탄</option>
+                    <option value="images/gadgets/alarm.png">근접 알람</option>
+                    <option value="images/gadgets/observation.png">관측 차단기</option>
+                </optgroup>
+            </select>
+        </div>
+
         <div id="canvas-container" style="flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 10px; background: #151515; border-radius: 8px;">
             <canvas id="paintCanvas" width="1280" height="720" style="border: 2px solid #444; box-shadow: 0px 0px 15px rgba(0,0,0,0.5); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #222; cursor: crosshair; max-width: 100%; max-height: 100%; display: block;"></canvas>
         </div>
@@ -84,19 +190,19 @@
             mapData[m] = {};
 
             // 1. 지하 설정
-            if (config.hasB1) mapData[m]["지하"] = `images/${m}_b1.png`;
+            if (config.hasB1) mapData[m]["지하"] = `images/maps/${m}_b1.png`;
 
             // 2. 1층 설정
-            if (config.has1F) mapData[m]["1층"] = `images/${m}_1f.png`;
+            if (config.has1F) mapData[m]["1층"] = `images/maps/${m}_1f.png`;
 
             // 3. 2층 설정
-            if (config.has2F) mapData[m]["2층"] = `images/${m}_2f.png`;
+            if (config.has2F) mapData[m]["2층"] = `images/maps/${m}_2f.png`;
 
             // 4. 3층 설정
-            if (config.has3F) mapData[m]["3층"] = `images/${m}_3f.png`;
+            if (config.has3F) mapData[m]["3층"] = `images/maps/${m}_3f.png`;
 
             // 5. 옥상 설정
-            if (config.hasRoof) mapData[m]["옥상"] = `images/${m}_roof.png`;
+            if (config.hasRoof) mapData[m]["옥상"] = `images/maps/${m}_roof.png`;
         });
 
         let currentMap = "", currentMode = "draw", isDrawing = false, lastSelectedFloor = "1층";
@@ -157,6 +263,7 @@
             currentMode = m;
             document.getElementById('btn-draw').classList.toggle('active', m === 'draw');
             document.getElementById('btn-erase').classList.toggle('active', m === 'erase');
+			document.getElementById('btn-stamp').classList.toggle('active', m === 'stamp');
         }
 
         function getCoords(e) {
@@ -167,10 +274,33 @@
             };
         }
 
+        // 🛠️ 최적화: 클릭 시 선 그리기 시작 또는 이미지 도장 찍기 분기 처리
         canvas.addEventListener('mousedown', function(e) {
-            isDrawing = true;
+            const p = getCoords(e);
             useRightClickErase = (e.button === 2);
-            
+
+            // 1. 도장 모드이고 왼쪽 클릭(0)일 때 이미지 캔버스에 직접 렌더링 (렉 0%)
+            if (currentMode === 'stamp' && e.button === 0) {
+                const imgPath = document.getElementById('stamp-selector').value;
+                const stampImg = new Image();
+                stampImg.src = imgPath;
+                stampImg.onload = function() {
+                    ctx.globalCompositeOperation = 'source-over';
+                    // 클릭한 중심점에 32x32 크기로 아이콘 이미지를 도장처럼 쿵 찍음
+                    ctx.drawImage(stampImg, p.x - 16, p.y - 16, 32, 32);
+                };
+                stampImg.onerror = function() {
+                    // 혹시 폴더에 이미지 파일이 아직 없을 때 글자로 대신 찍어주는 방어 코드
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = '#ffb703';
+                    ctx.font = 'bold 12px sans-serif';
+                    ctx.fillText("📍아이콘없음", p.x - 25, p.y + 4);
+                };
+                return; // 도장을 찍었으므로 그리기 로직으로 넘어가지 않고 종료
+            }
+
+            // 2. 그리기 또는 지우개 모드일 때 기존 뼈대 작동
+            isDrawing = true;
             ctx.beginPath();
             ctx.lineCap = 'round'; 
             ctx.lineJoin = 'round'; 
@@ -183,12 +313,12 @@
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.strokeStyle = currentColor; 
             }
-
-            const p = getCoords(e);
             ctx.moveTo(p.x, p.y);
         });
+
         canvas.addEventListener('mousemove', function(e) {
-            if (!isDrawing) return; 
+            // 도장 모드일 때는 마우스를 움직여도 선이 그려지지 않도록 차단
+            if (!isDrawing || currentMode === 'stamp') return; 
 
             const p = getCoords(e);
             ctx.lineTo(p.x, p.y);
