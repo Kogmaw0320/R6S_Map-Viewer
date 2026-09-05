@@ -373,8 +373,13 @@
                 const fDiv = document.getElementById('floor-buttons'); 
                 fDiv.innerHTML = ""; 
                 const floors = Object.keys(mapData[name]); 
-                let targetFloor = floors.includes(lastSelectedFloor) ? lastSelectedFloor : floors;
                 
+                // 🚨 [1층 강제 고정 핵심 공식] 
+                // 예전 층수 기억을 완전히 지우고, 새 맵으로 전환 시 무조건 "1층"을 기본 타겟으로 설정합니다.
+                // 만약 해당 맵에 "1층"이라는 명칭이 없다면 안전장치로 그 맵의 가장 첫 번째 층수를 가져옵니다.
+                let targetFloor = floors.includes("1층") ? "1층" : floors[0];
+                
+                // 새로운 맵의 층수 버튼들을 동적으로 다시 빌드하는 구역
                 floors.forEach(f => {
                         const btn = document.createElement('button'); 
                         btn.className = 'floor-btn';
@@ -389,11 +394,13 @@
                         fDiv.appendChild(btn);
                 });
                 
+                // 1.0 배율 및 영점 다이렉트 바인딩
                 scale = 1.0;
                 panX = 0;
                 panY = 0;
                 applyTransform();
                 
+                // 강제 지정된 1층 화면을 캔버스 부모 판넬에 최종 드롭다운 주입
                 changeFloor(targetFloor);
         }
 
