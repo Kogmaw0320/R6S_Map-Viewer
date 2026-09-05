@@ -104,12 +104,43 @@
             align-items: center;
             justify-content: center;
         }
+		#developer-credits {
+			margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            user-select: none;
+        }
+
+        .credit-tag {
+                font-size: 9px;
+                font-weight: bold;
+                letter-spacing: 2px;
+                color: #666;
+                text-transform: uppercase;
+        }
+
+        .credit-initial {
+                font-size: 14px;
+                font-weight: 900;
+                letter-spacing: 1px;
+                color: #ffb703;
+                font-family: 'Segoe UI', sans-serif;
+                text-shadow: 0 0 6px rgba(255, 183, 3, 0.3);
+        }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h2 style="color: #ffb703; margin-top: 0;">MAPS</h2>
         <div id="map-box"></div>
+		        <div id="developer-credits">
+                <span class="credit-tag">DEVELOPER</span>
+                <span class="credit-initial">알약</span>
+				<span class="credit-sub">Discord : al_yac</span>
+        </div>
     </div>
     <div id="content">
         <h1 id="map-title" style="margin: 0 0 5px 0; font-size: 24px;">맵을 선택하세요</h1>
