@@ -4,53 +4,63 @@
     <meta charset="UTF-8">
     <title>R6S Map Viewer</title>
     <style>
-        body { display: flex; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #111; color: #fff; height: 100vh; overflow: hidden; }
+        body { display: flex; margin: 0; font-family: sans-serif; background: #111; color: #fff; height: 100vh; overflow: hidden; }
         #sidebar { width: 240px; background: #222; height: 100vh; padding: 15px; box-sizing: border-box; overflow-y: auto; flex-shrink: 0; }
         #sidebar::-webkit-scrollbar { width: 6px; }
         #sidebar::-webkit-scrollbar-track { background: #1a1a1a; }
         #sidebar::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
         #sidebar::-webkit-scrollbar-thumb:hover { background: #ffb703; }
         #content { flex: 1; padding: 15px; text-align: center; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-        .map-btn { display: block; width: 100%; padding: 10px; margin-bottom: 8px; background: #333; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; text-align: left; transition: all 0.15s ease-in-out; border-left: 0 solid transparent; }
+        .map-btn { display: block; width: 100%; padding: 10px; margin-bottom: 8px; background: #333; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; text-align: left; border-left: 0 solid transparent; }
         .map-btn:hover, .map-btn.active { background: #444; border-left: 4px solid #ffb703; }
-        .floor-btn { padding: 8px 16px; margin: 4px; background: #2196F3; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; transition: all 0.15s ease-in-out; }
+        .floor-btn { padding: 8px 16px; margin: 4px; background: #2196F3; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .floor-btn:hover, .floor-btn.active { background: #0b7dda; outline: 2px solid #fff; }
         #floor-buttons { margin: 10px 0; min-height: 40px; }
-        .mode-btn { padding: 8px 16px; margin: 0 4px; background: #444; color: #fff; border: 1px solid #666; cursor: pointer; border-radius: 4px; font-weight: bold; transition: background 0.15s; }
+        .mode-btn { padding: 8px 16px; margin: 0 4px; background: #444; color: #fff; border: 1px solid #666; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .mode-btn.active { background: #ffb703; color: #000; border-color: #ffb703; }
-        #canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 10px; background: #151515; border-radius: 8px; }
-        canvas { border: 2px solid #444; box-shadow: 0px 0px 15px rgba(0,0,0,0.5); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #222; cursor: crosshair; max-width: 100%; max-height: 100%; display: block; transform: translateZ(0); will-change: transform; }
-        .clear-btn { padding: 8px 16px; background: #e63946; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px; transition: background 0.15s; }
-        .clear-btn:hover { background: #c32f3a; }
+        #canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 10px; background: #151515; border-radius: 8px; position: relative; }
+        canvas { 
+            border: 2px solid #444; 
+            box-shadow: 0px 0px 15px rgba(0,0,0,0.5); 
+            background-size: contain; 
+            background-repeat: no-repeat; 
+            background-position: center; 
+            background-color: #222; 
+            cursor: crosshair; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+        }
+        .clear-btn { padding: 8px 16px; background: #e63946; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px; }
+		#brush-cursor {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            display: none;
+            z-index: 100;
+            transform: translate(-50%, -50%);
+        }
     </style>
 </head>
 <body>
-
     <div id="sidebar">
         <h2 style="color: #ffb703; margin-top: 0;">MAPS</h2>
         <div id="map-box"></div>
     </div>
-
     <div id="content">
         <h1 id="map-title" style="margin: 0 0 5px 0; font-size: 24px;">맵을 선택하세요</h1>
         <div id="floor-buttons"></div>
-
-        <div style="margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+        <div style="margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.3); max-width: 100%; overflow-x: auto;">
             <button id="btn-draw" class="mode-btn active" onclick="setMode('draw')">✏️ 그리기 모드</button>
             <button id="btn-erase" class="mode-btn" onclick="setMode('erase')">🧽 지우개 모드</button>
-            <span style="color: #555;">|</span>
-            <span style="font-weight: bold; font-size: 14px;">색상:</span>
-            <input type="color" id="brush-color" value="#ff0000" style="cursor: pointer; width: 35px; height: 25px; border: none; border-radius: 4px; background: transparent;">
-            <span style="color: #555;">|</span>
-            <span style="font-weight: bold; font-size: 14px;">굵기: <span id="size-indicator" style="color: #ffb703;">5</span></span>
-            <input type="range" id="brush-size" min="2" max="30" value="5" style="cursor: pointer; width: 100px; accent-color: #2196F3;">
-            <span style="color: #555;">|</span>
-            <button class="clear-btn" onclick="clearCanvas()">전체 초기화</button>
-        </div>
-        <div style="margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.3); max-width: 100%; overflow-x: auto;">
-            <button id="btn-stamp" class="mode-btn" onclick="setMode('stamp')">🎯 아이콘 모드</button>
-            <span style="color: #555;">|</span>
-            <span style="font-weight: bold; font-size: 14px;">아이콘 선택:</span>
+            <button id="btn-stamp" class="mode-btn" onclick="setMode('stamp')">🎯 아이콘 도장 모드</button>
+            <span>|</span><span>아이콘:</span>
             <select id="stamp-selector" onchange="setMode('stamp')" style="background: #333; color: #fff; padding: 5px; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold;">
                 <optgroup label="⚔️ 공격팀 (Attakers)">
 					<option value="images/operators/striker.png">스트라이커 (Striker)</option>
@@ -77,7 +87,7 @@
                     <option value="images/operators/maverick.png">매버릭 (Maverick)</option>
                     <option value="images/operators/nomad.png">노마드 (Nomad)</option>
                     <option value="images/operators/gridlock.png">그리드락 (Gridlock)</option>
-                    <option value="images/operators/nook.png">뇌크 (Nøkk)</option>
+                    <option value="images/operators/nokk.png">뇌크 (Nøkk)</option>
                     <option value="images/operators/amaru.png">아마루 (Amaru)</option>
                     <option value="images/operators/kali.png">칼리 (Kali)</option>
                     <option value="images/operators/iana.png">야나 (Iana)</option>
@@ -135,205 +145,260 @@
 					<option value="images/operators/noor.png">누르 (Noor)</option>
                 </optgroup>
                 <optgroup label="💣 가젯류 (Gadgets)">
-                    <option value="images/gadgets/frag.png">수류탄</option>
-                    <option value="images/gadgets/smoke_g.png">연막탄</option>
-                    <option value="images/gadgets/stun.png">섬광탄</option>
+                    <option value="images/gadgets/frag_grenade.png">수류탄</option>
+                    <option value="images/gadgets/smoke_grenade.png">연막탄</option>
+                    <option value="images/gadgets/stun_grenade.png">섬광탄</option>
                     <option value="images/gadgets/claymore.png">대인 지뢰</option>
-                    <option value="images/gadgets/breach.png">접착 폭약</option>
-                    <option value="images/gadgets/hard_breach.png">강력 접착 폭약</option>
-					<option value="images/gadgets/emp.png">충격 EMP 수류탄</option>
-                    <option value="images/gadgets/barbed.png">철조망</option>
-                    <option value="images/gadgets/shield.png">이동식 방패</option>
-					<option value="images/gadgets/c4.png">원격 제어 폭탄 (C4)</option>
+                    <option value="images/gadgets/breach_charge.png">접착 폭약</option>
+                    <option value="images/gadgets/hard_breach_charge.png">강력 접착 폭약</option>
+					<option value="images/gadgets/impact_emp_grenade.png">충격 EMP 수류탄</option>
+					<option value="images/gadgets/drone.png">드론</option>
+					<option value="images/gadgets/defuser.png">폭탄 해체 장비</option>
+                    <option value="images/gadgets/barbed_wire.png">철조망</option>
+                    <option value="images/gadgets/deployable_shield.png">이동식 방패</option>
+					<option value="images/gadgets/nitro_cell.png">원격 제어 폭탄 (C4)</option>
                     <option value="images/gadgets/bulletproof_camera.png">방탄 카메라</option>
                     <option value="images/gadgets/impact_grenade.png">충격 수류탄</option>
-                    <option value="images/gadgets/alarm.png">근접 알람</option>
+                    <option value="images/gadgets/proximity_alarm.png">근접 알람</option>
                     <option value="images/gadgets/observation_blocker.png">관측 차단기</option>
-					<option value="images/gadgets/barricade.png">바리케이드</option>
+					<option value="images/gadgets/barricades.png">바리케이드</option>
                     <option value="images/gadgets/reinforcement.png">강화제</option>
-					<option value="images/gadgets/drone.png">드론</option>
                 </optgroup>
             </select>
+            <span>|</span><span>색상:</span>
+            <input type="color" id="brush-color" value="#ff0000" style="cursor: pointer; width: 35px; height: 25px; border: none; background: transparent;">
+            <span>|</span><span>굵기: <span id="size-indicator" style="color: #ffb703;">5</span></span>
+            <input type="range" id="brush-size" min="2" max="30" value="5" style="cursor: pointer; width: 100px;">
+            <span>|</span>
+            <button class="mode-btn" onclick="undo()">↩️ 되돌리기</button>
+			<button class="mode-btn" onclick="resetPan()" style="background: #333; color: #fff; border-color: #555;">🎯 위치 초기화</button>
+            <button class="clear-btn" onclick="clearCanvas()">전체 초기화</button>
         </div>
-
-        <div id="canvas-container" style="flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 10px; background: #151515; border-radius: 8px;">
-            <canvas id="paintCanvas" width="1280" height="720" style="border: 2px solid #444; box-shadow: 0px 0px 15px rgba(0,0,0,0.5); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #222; cursor: crosshair; max-width: 100%; max-height: 100%; display: block;"></canvas>
+        <div id="canvas-container" style="flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 10px; background: #151515; border-radius: 8px; position: relative;">
+            <canvas id="stampCanvas" width="1280" height="720" style="border: 2px solid #444; box-shadow: 0px 0px 15px rgba(0,0,0,0.5); background-size: contain; background-repeat: no-repeat; background-position: center; background-color: #222; width: 1280px; height: 720px; display: block; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1;"></canvas>
+            <canvas id="paintCanvas" width="1280" height="720" style="cursor: crosshair; width: 1280px; height: 720px; display: block; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; background: transparent;"></canvas>
+			<img id="guide-image" src="images/maps/guide.jpg" style="position: absolute; width: 100%; height: 100%; object-fit: contain; z-index: 5; background: #222; display: block; border-radius: 4px;">
+			<div id="brush-cursor"></div>
         </div>
     </div>
 
-    <script>
-        // ==========================================
-        // ⚙️ [유저 설정 구역] 새 맵 추가 및 모든 층수 제어는 여기만 수정하세요!
-        // ==========================================
+	<script>
         const r6Config = {
-            // "맵 이름": { 지하, 1층, 2층, 3층, 옥상 유무 }
-            "오리건":            { hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "클럽하우스":        	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "영사관":            { hasB1: true,  has1F: true, has2F: true, has3F: false,  hasRoof: true },
-            "은행":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "별장":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "운하":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "도스토예프스키 카페": { hasB1: false, has1F: true, has2F: true, has3F: true,  hasRoof: true },
-            "국경":             	{ hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "마천루":            { hasB1: false,  has1F: true, has2F: true, has3F: false,  hasRoof: true },
-            "해안선":            { hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "테마파크":          	{ hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "빌라":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "오지":             	{ hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "요새":             	{ hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "나이트헤븐 연구소":  	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "소굴":             	{ hasB1: true,  has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "에메랄드 평원":      { hasB1: false, has1F: true, has2F: true, has3F: false, hasRoof: true },
-            "칼립소 카지노":      { hasB1: true,  has1F: true, has2F: true, has3F: false,  hasRoof: true }
+            "오리건": 			{ hasB2: false, hasB1: true, has1F: true, has2F: true, has3F: true, has4F: false, has5F: false, hasRoof: true },
+            "클럽하우스": 		{ hasB2: false, hasB1: true, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "영사관": 			{ hasB2: false, hasB1: true, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "은행": 				{ hasB2: false, hasB1: true, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "별장": 				{ hasB2: false, hasB1: true, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "운하": 				{ hasB2: true, hasB1: true, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "도스토예프스키 카페": { hasB2: false, hasB1: false, has1F: true, has2F: true, has3F: true, has4F: false, has5F: false, hasRoof: true },
+            "국경": 				{ hasB2: false, hasB1: false, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "마천루": 			{ hasB2: false, hasB1: false, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "해안선": 			{ hasB2: false, hasB1: false, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "테마파크": 			{ hasB2: false, hasB1: false, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "빌라": 				{ hasB2: false, hasB1: true, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "오지": 				{ hasB2: false, hasB1: false, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "요새": 				{ hasB2: false, hasB1: false, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "나이트헤븐 연구소": 	{ hasB2: false, hasB1: true, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "소굴": 				{ hasB2: false, hasB1: true, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "에메랄드 평원": 		{ hasB2: false, hasB1: false, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
+            "칼립소 카지노": 		{ hasB2: false, hasB1: true, has1F: true, has2F: true, has3F: false, has4F: false, has5F: false, hasRoof: true },
         };
+
         const mapData = {};
-
         Object.keys(r6Config).forEach(m => {
-            const config = r6Config[m];
-            mapData[m] = {};
-
-            // 1. 지하 설정
-            if (config.hasB1) mapData[m]["지하"] = `images/maps/${m}_b1.png`;
-
-            // 2. 1층 설정
-            if (config.has1F) mapData[m]["1층"] = `images/maps/${m}_1f.png`;
-
-            // 3. 2층 설정
-            if (config.has2F) mapData[m]["2층"] = `images/maps/${m}_2f.png`;
-
-            // 4. 3층 설정
-            if (config.has3F) mapData[m]["3층"] = `images/maps/${m}_3f.png`;
-
-            // 5. 옥상 설정
-            if (config.hasRoof) mapData[m]["옥상"] = `images/maps/${m}_roof.png`;
+            const config = r6Config[m]; mapData[m] = {};
+			if (config.hasB2) mapData[m]["지하 2층"] = `images/maps/${m}_b2.jpg`;
+            if (config.hasB1) mapData[m]["지하 1층"] = `images/maps/${m}_b1.jpg`;
+            if (config.has1F) mapData[m]["1층"] = `images/maps/${m}_1f.jpg`;
+            if (config.has2F) mapData[m]["2층"] = `images/maps/${m}_2f.jpg`;
+            if (config.has3F) mapData[m]["3층"] = `images/maps/${m}_3f.jpg`;
+			if (config.has4F) mapData[m]["4층"] = `images/maps/${m}_4f.jpg`;
+            if (config.has5F) mapData[m]["5층"] = `images/maps/${m}_5f.jpg`;
+            if (config.hasRoof) mapData[m]["옥상"] = `images/maps/${m}_roof.jpg`;
         });
 
-        let currentMap = "", currentMode = "draw", isDrawing = false, lastSelectedFloor = "1층";
+        let currentMap = "", currentMode = "draw", isDrawing = false, lastSelectedFloor = "1층", undoStack = [];
         const canvas = document.getElementById('paintCanvas'), ctx = canvas.getContext('2d');
+        const stampCanvas = document.getElementById('stampCanvas'), stampCtx = stampCanvas.getContext('2d');
         const colorEl = document.getElementById('brush-color'), sizeEl = document.getElementById('brush-size'), sizeIndicator = document.getElementById('size-indicator');
-
         let currentSize = sizeEl.value, currentColor = colorEl.value, useRightClickErase = false;
-
         sizeEl.addEventListener('input', (e) => { currentSize = e.target.value; sizeIndicator.innerText = currentSize; });
         colorEl.addEventListener('change', (e) => { currentColor = e.target.value; });
         canvas.addEventListener('contextmenu', e => e.preventDefault());
-
+        function saveState() {
+            if (undoStack.length >= 20) undoStack.shift();
+            undoStack.push({ paint: ctx.getImageData(0, 0, canvas.width, canvas.height), htmlMarkers: document.getElementById('canvas-container').innerHTML });
+        }
+        function undo() {
+            if (undoStack.length === 0) return;
+            const lastState = undoStack.pop(); ctx.putImageData(lastState.paint, 0, 0);
+            const container = document.getElementById('canvas-container');
+            document.querySelectorAll('.placed-marker').forEach(el => el.remove());
+            const tempDiv = document.createElement('div'); tempDiv.innerHTML = lastState.htmlMarkers;
+            tempDiv.querySelectorAll('.placed-marker').forEach(marker => {
+                const newMarker = document.createElement('div'); newMarker.className = 'placed-marker';
+                newMarker.style.cssText = marker.style.cssText; newMarker.innerText = marker.innerText;
+                bindMarkerEvents(newMarker); container.appendChild(newMarker);
+            });
+        }
+		
+		window.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); } });
         function initMapButtons() {
             const box = document.getElementById('map-box');
             Object.keys(mapData).forEach(name => {
-                const btn = document.createElement('button');
-                btn.className = 'map-btn';
-                btn.innerText = "📍 " + name;
-                btn.onclick = () => selectMap(name, btn);
-                box.appendChild(btn);
+                const btn = document.createElement('button'); btn.className = 'map-btn'; btn.innerText = "📍 " + name;
+                btn.onclick = () => selectMap(name, btn); box.appendChild(btn);
             });
         }
         initMapButtons();
-
-        function selectMap(name, btnElement) {
-            currentMap = name;
-            document.getElementById('map-title').innerText = name;
+		        function selectMap(name, btnElement) {
+			document.getElementById('guide-image').style.display = 'none';
+            currentMap = name; document.getElementById('map-title').innerText = name;
             document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active'));
             if(btnElement) btnElement.classList.add('active');
-
-            const fDiv = document.getElementById('floor-buttons');
-            fDiv.innerHTML = ""; 
-            const floors = Object.keys(mapData[name]);
-            let targetFloor = floors.includes(lastSelectedFloor) ? lastSelectedFloor : floors[0];
-
+            const fDiv = document.getElementById('floor-buttons'); fDiv.innerHTML = ""; 
+            const floors = Object.keys(mapData[name]); let targetFloor = floors.includes(lastSelectedFloor) ? lastSelectedFloor : floors[0];
             floors.forEach(f => {
-                const btn = document.createElement('button');
-                btn.className = 'floor-btn';
-                if(f === targetFloor) btn.classList.add('active');
-                btn.innerText = f;
-                btn.onclick = () => {
-                    lastSelectedFloor = f; 
-                    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    changeFloor(f);
-                };
+                const btn = document.createElement('button'); btn.className = 'floor-btn';
+                if(f === targetFloor) btn.classList.add('active'); btn.innerText = f;
+                btn.onclick = () => { lastSelectedFloor = f; document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); changeFloor(f); };
                 fDiv.appendChild(btn);
             });
             changeFloor(targetFloor);
         }
 
-        function changeFloor(f) {
-            canvas.style.backgroundImage = "url('" + mapData[currentMap][f] + "')";
-            clearCanvas();
-        }
-
-        function setMode(m) {
-            currentMode = m;
-            document.getElementById('btn-draw').classList.toggle('active', m === 'draw');
-            document.getElementById('btn-erase').classList.toggle('active', m === 'erase');
-			document.getElementById('btn-stamp').classList.toggle('active', m === 'stamp');
-        }
+        function changeFloor(f) { undoStack = []; stampCanvas.style.backgroundImage = "url('" + mapData[currentMap][f] + "')"; clearCanvas(); }
+        
+        function setMode(m) { currentMode = m; document.getElementById('btn-draw').classList.toggle('active', m === 'draw'); document.getElementById('btn-erase').classList.toggle('active', m === 'erase'); document.getElementById('btn-stamp').classList.toggle('active', m === 'stamp'); }
+		
+        let scale = 1, panX = 0, panY = 0, isPanning = false, startPanX = 0, startPanY = 0;
 
         function getCoords(e) {
-            const rect = canvas.getBoundingClientRect();
             return {
-                x: (e.clientX - rect.left) * (canvas.width / rect.width),
-                y: (e.clientY - rect.top) * (canvas.height / rect.height)
+                x: e.offsetX,
+                y: e.offsetY
             };
         }
 
-        // 🛠️ 최적화: 클릭 시 선 그리기 시작 또는 이미지 도장 찍기 분기 처리
+        function applyTransform() {
+            const transformStr = `translate(-50%, -50%) translate(${panX}px, ${panY}px) scale(${scale})`;
+            
+            stampCanvas.style.transform = transformStr;
+            canvas.style.transform = transformStr;
+        }
+
         canvas.addEventListener('mousedown', function(e) {
             const p = getCoords(e);
             useRightClickErase = (e.button === 2);
 
-            // 1. 도장 모드이고 왼쪽 클릭(0)일 때 이미지 캔버스에 직접 렌더링 (렉 0%)
+            if (e.button === 0 || e.button === 2) saveState();
+
             if (currentMode === 'stamp' && e.button === 0) {
-                const imgPath = document.getElementById('stamp-selector').value;
-                const stampImg = new Image();
-                stampImg.src = imgPath;
-                stampImg.onload = function() {
-                    ctx.globalCompositeOperation = 'source-over';
-                    // 클릭한 중심점에 32x32 크기로 아이콘 이미지를 도장처럼 쿵 찍음
-                    ctx.drawImage(stampImg, p.x - 16, p.y - 16, 32, 32);
-                };
-                stampImg.onerror = function() {
-                    // 혹시 폴더에 이미지 파일이 아직 없을 때 글자로 대신 찍어주는 방어 코드
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.fillStyle = '#ffb703';
-                    ctx.font = 'bold 12px sans-serif';
-                    ctx.fillText("📍아이콘없음", p.x - 25, p.y + 4);
-                };
-                return; // 도장을 찍었으므로 그리기 로직으로 넘어가지 않고 종료
+                const container = document.getElementById('canvas-container'), imgPath = document.getElementById('stamp-selector').value;
+                const selector = document.getElementById('stamp-selector'), selectedText = selector.options[selector.selectedIndex].text, koreanName = selectedText.split(/[ (]/);
+                const opEl = document.createElement('div'); opEl.className = 'placed-marker';
+                
+                const cRect = container.getBoundingClientRect();
+                opEl.style.cssText = `position:absolute; width:32px; height:32px; z-index:10; cursor:move; user-select:none; left:${e.clientX - cRect.left - 16}px; top:${e.clientY - cRect.top - 16}px;`;
+                
+                const img = new Image();
+                img.onload = function() { opEl.style.backgroundImage = "url('" + imgPath + "')"; opEl.style.backgroundSize = 'contain'; opEl.style.backgroundRepeat = 'no-repeat'; opEl.style.backgroundPosition = 'center'; };
+                img.onerror = function() { opEl.style.cssText += 'background:#ffb703; border:1px solid #fff; border-radius:4px; color:#000; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center;'; opEl.innerText = koreanName; };
+                img.src = imgPath; bindMarkerEvents(opEl); container.appendChild(opEl); return;
             }
 
-            // 2. 그리기 또는 지우개 모드일 때 기존 뼈대 작동
-            isDrawing = true;
-            ctx.beginPath();
+            if (e.button === 1 || (currentMode !== 'stamp' && currentMode !== 'draw' && e.button === 0)) {
+                isPanning = true;
+                startPanX = e.clientX - panX;
+                startPanY = e.clientY - panY;
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+
+            isDrawing = true; 
+            ctx.beginPath(); 
             ctx.lineCap = 'round'; 
             ctx.lineJoin = 'round'; 
-            ctx.lineWidth = currentSize;
+            ctx.lineWidth = currentSize; 
 
-            if (currentMode === 'erase' || useRightClickErase) {
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.strokeStyle = 'rgba(0,0,0,1)';
-            } else {
-                ctx.globalCompositeOperation = 'source-over';
+            if (currentMode === 'erase' || useRightClickErase) { 
+                ctx.globalCompositeOperation = 'destination-out'; 
+                ctx.strokeStyle = 'rgba(0,0,0,1)'; 
+            } else { 
+                ctx.globalCompositeOperation = 'source-over'; 
                 ctx.strokeStyle = currentColor; 
             }
+            
             ctx.moveTo(p.x, p.y);
         });
 
         canvas.addEventListener('mousemove', function(e) {
-            // 도장 모드일 때는 마우스를 움직여도 선이 그려지지 않도록 차단
-            if (!isDrawing || currentMode === 'stamp') return; 
+            if (isPanning) {
+                panX = e.clientX - startPanX;
+                panY = e.clientY - startPanY;
+                applyTransform();
+                return;
+            }
 
-            const p = getCoords(e);
-            ctx.lineTo(p.x, p.y);
-            ctx.stroke(); 
+            if (isDrawing && currentMode !== 'stamp') {
+                const p = getCoords(e); 
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke(); 
+            }
+
+            const cursorEl = document.getElementById('brush-cursor');
+            if (currentMode === 'draw' || currentMode === 'erase') {
+                cursorEl.style.display = 'block';
+                
+                const scaledSize = currentSize * scale;
+                cursorEl.style.width = scaledSize + 'px';
+                cursorEl.style.height = scaledSize + 'px';
+                
+                const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+                cursorEl.style.left = (e.clientX - containerRect.left) + 'px';
+                cursorEl.style.top = (e.clientY - containerRect.top) + 'px';
+            } else {
+                cursorEl.style.display = 'none';
+            }
         });
 
-        canvas.addEventListener('mouseup', () => { isDrawing = false; useRightClickErase = false; });
-        canvas.addEventListener('mouseout', () => { isDrawing = false; useRightClickErase = false; });
+        canvas.addEventListener('mouseup', () => { isDrawing = false; isPanning = false; useRightClickErase = false; canvas.style.cursor = 'crosshair'; });
+        canvas.addEventListener('mouseout', () => { isDrawing = false; isPanning = false; useRightClickErase = false;
+		document.getElementById('brush-color').style.display = 'none';
+		});
+
+        canvas.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            const zoomSpeed = 0.1;
+            if (e.deltaY < 0) scale = Math.min(scale + zoomSpeed, 5);
+            else scale = Math.max(scale - zoomSpeed, 0.5);
+            applyTransform();
+        }, { passive: false });
+
+        function bindMarkerEvents(opEl) {
+            opEl.addEventListener('contextmenu', function(e) { e.preventDefault(); saveState(); opEl.remove(); });
+            opEl.addEventListener('mousedown', function(downEvent) {
+                if (downEvent.button === 2) return;
+                downEvent.stopPropagation(); saveState();
+                const startX = downEvent.clientX - opEl.offsetLeft, startY = downEvent.clientY - opEl.offsetTop;
+                function onMouseMove(moveEvent) { opEl.style.left = (moveEvent.clientX - startX) + 'px'; opEl.style.top = (moveEvent.clientY - startY) + 'px'; }
+                function onMouseUp() { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); }
+                document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
+            });
+        }
+		
+        function resetPan() {
+            panX = 0;
+            panY = 0;
+            applyTransform();
+        }
 
         function clearCanvas() {
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.querySelectorAll('.placed-marker').forEach(el => el.remove());
+            undoStack = [];
+            scale = 1; panX = 0; panY = 0;
+            applyTransform();
         }
     </script>
 </body>
