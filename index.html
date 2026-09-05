@@ -52,7 +52,7 @@
                 border-radius: 8px; 
                 position: absolute; 
                 
-                top: calc(50% - 65px); 
+                top: calc(50% - 90px); 
                 left: calc(50% + 120px); 
                 
                 transform-origin: 640px 360px !important; 
@@ -115,9 +115,8 @@
         <h1 id="map-title" style="margin: 0 0 5px 0; font-size: 24px;">맵을 선택하세요</h1>
         <div id="floor-buttons"></div>
         <div style="margin-bottom: 15px; background: #222; padding: 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 12px; flex-shrink: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.3); max-width: 100%; overflow-x: auto;">
-            <button id="btn-draw" class="mode-btn active" onclick="setMode('draw')">✏️ 그리기 모드</button>
-            <button id="btn-erase" class="mode-btn" onclick="setMode('erase')">🧽 지우개 모드</button>
-            <button id="btn-stamp" class="mode-btn" onclick="setMode('stamp')">🎯 아이콘 도장 모드</button>
+            <button id="btn-draw" class="mode-btn active" onclick="setMode('draw')">✏️ 그리기/지우기 모드</button>
+            <button id="btn-stamp" class="mode-btn" onclick="setMode('stamp')">🎯 가젯&오퍼레이터 배치 모드</button>
             <span>|</span><span>아이콘:</span>
             <select id="stamp-selector" onchange="setMode('stamp')" style="background: #333; color: #fff; padding: 5px; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-weight: bold;">
                 <optgroup label="⚔️ 공격팀 (Attakers)">
@@ -229,7 +228,8 @@
             <span>|</span><span>굵기: <span id="size-indicator" style="color: #ffb703;">5</span></span>
             <input type="range" id="brush-size" min="2" max="30" value="5" style="cursor: pointer; width: 100px;">
             <span>|</span>
-            <button class="mode-btn" onclick="undo()">↩️ 되돌리기</button>
+                <button class="clear-btn" style="background: #444; color: #fff; margin-left: 15px;" onclick="undo()">↩️ 실행 취소</button>
+                <button class="clear-btn" style="background: #444; color: #fff; margin-left: 5px;" onclick="redo()">↪️ 다시 실행</button>
 			<button class="mode-btn" onclick="resetPan()" style="background: #333; color: #fff; border-color: #555;">🎯 위치 초기화</button>
             <button class="clear-btn" onclick="clearCanvas()">전체 초기화</button>
         </div>
@@ -276,7 +276,7 @@
             if (config.hasRoof) mapData[m]["옥상"] = `images/maps/${m}_roof.jpg`;
         });
 
-        let currentMap = "", currentMode = "draw", isDrawing = false, lastSelectedFloor = "1층", undoStack = [];
+        let currentMap = "", currentMode = "draw", isDrawing = false, lastSelectedFloor = "1층", undoStack = [], redoStack = [];
         const canvas = document.getElementById('paintCanvas'), ctx = canvas.getContext('2d');
         const stampCanvas = document.getElementById('stampCanvas'), stampCtx = stampCanvas.getContext('2d');
         const colorEl = document.getElementById('brush-color'), sizeEl = document.getElementById('brush-size'), sizeIndicator = document.getElementById('size-indicator');
@@ -285,20 +285,72 @@
         colorEl.addEventListener('change', (e) => { currentColor = e.target.value; });
         canvas.addEventListener('contextmenu', e => e.preventDefault());
         function saveState() {
-            if (undoStack.length >= 20) undoStack.shift();
-            undoStack.push({ paint: ctx.getImageData(0, 0, canvas.width, canvas.height), htmlMarkers: document.getElementById('canvas-container').innerHTML });
+                if (undoStack.length >= 20) {
+                        undoStack.shift();
+                }
+                undoStack.push({ 
+                        paint: ctx.getImageData(0, 0, canvas.width, canvas.height), 
+                        htmlMarkers: document.getElementById('canvas-container').innerHTML 
+                });
+                
+                redoStack = [];
         }
         function undo() {
-            if (undoStack.length === 0) return;
-            const lastState = undoStack.pop(); ctx.putImageData(lastState.paint, 0, 0);
-            const container = document.getElementById('canvas-container');
-            document.querySelectorAll('.placed-marker').forEach(el => el.remove());
-            const tempDiv = document.createElement('div'); tempDiv.innerHTML = lastState.htmlMarkers;
-            tempDiv.querySelectorAll('.placed-marker').forEach(marker => {
-                const newMarker = document.createElement('div'); newMarker.className = 'placed-marker';
-                newMarker.style.cssText = marker.style.cssText; newMarker.innerText = marker.innerText;
-                bindMarkerEvents(newMarker); container.appendChild(newMarker);
-            });
+                if (undoStack.length === 0) return;
+                
+                redoStack.push({
+                        paint: ctx.getImageData(0, 0, canvas.width, canvas.height), 
+                        htmlMarkers: document.getElementById('canvas-container').innerHTML 
+                });
+                
+                const lastState = undoStack.pop(); 
+                ctx.putImageData(lastState.paint, 0, 0);
+                
+                const container = document.getElementById('canvas-container');
+                document.querySelectorAll('.tactical-marker').forEach(function(el) {
+                        el.remove();
+                });
+                
+                const tempDiv = document.createElement('div'); 
+                tempDiv.innerHTML = lastState.htmlMarkers;
+                
+                tempDiv.querySelectorAll('.tactical-marker').forEach(function(marker) {
+                        const newMarker = document.createElement('div'); 
+                        newMarker.className = 'tactical-marker';
+                        newMarker.style.cssText = marker.style.cssText; 
+                        newMarker.innerText = marker.innerText;
+                        bindMarkerEvents(newMarker); 
+                        container.appendChild(newMarker);
+                });
+        }
+
+        function redo() {
+                if (redoStack.length === 0) return;
+                
+                undoStack.push({
+                        paint: ctx.getImageData(0, 0, canvas.width, canvas.height), 
+                        htmlMarkers: document.getElementById('canvas-container').innerHTML 
+                });
+                
+                const nextState = redoStack.pop();
+                ctx.putImageData(nextState.paint, 0, 0);
+                
+                const container = document.getElementById('canvas-container');
+                document.querySelectorAll('.tactical-marker').forEach(function(el) {
+                        el.remove();
+                });
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = nextState.htmlMarkers;
+                
+                tempDiv.querySelectorAll('.tactical-marker').forEach(function(marker) {
+                        const newMarker = document.createElement('div');
+                        newMarker.className = 'tactical-marker';
+                        newMarker.style.cssText = marker.style.cssText;
+                        newMarker.innerText = marker.innerText;
+                        bindMarkerEvents(newMarker);
+                        container.appendChild(newMarker);
+                });
         }
 		
 		window.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); } });
@@ -357,7 +409,18 @@
                 clearCanvas(); 
         }
         
-        function setMode(m) { currentMode = m; document.getElementById('btn-draw').classList.toggle('active', m === 'draw'); document.getElementById('btn-erase').classList.toggle('active', m === 'erase'); document.getElementById('btn-stamp').classList.toggle('active', m === 'stamp'); }
+        function setMode(m) {
+                currentMode = m;
+                const drawBtn = document.getElementById('btn-draw');
+                const stampBtn = document.getElementById('btn-stamp');
+                
+                if (drawBtn) {
+                        drawBtn.classList.toggle('active', m === 'draw');
+                }
+                if (stampBtn) {
+                        stampBtn.classList.toggle('active', m === 'stamp');
+                }
+        }
 		
         let scale = 1.0, panX = 0, panY = 0, isPanning = false, startPanX = 0, startPanY = 0;
 
