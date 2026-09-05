@@ -5,12 +5,38 @@
     <title>R6S Map Viewer</title>
     <style>
         body { display: flex; margin: 0; font-family: sans-serif; background: #111; color: #fff; height: 100vh; overflow: hidden; }
-        #sidebar { width: 240px; background: #222; height: 100vh; padding: 15px; box-sizing: border-box; overflow-y: auto; flex-shrink: 0; }
+        
+        /* [해결] 확실한 레이어 인양으로 캔버스가 절대 침범하지 못하게 고정 */
+        #sidebar { 
+            width: 240px; 
+            background: #222; 
+            height: 100vh; 
+            padding: 15px; 
+            box-sizing: border-box; 
+            overflow-y: auto; 
+            flex-shrink: 0; 
+            position: relative;
+            z-index: 100 !important; /* 무조건 최상위 UI 레이어 보장 */
+        }
+        
         #sidebar::-webkit-scrollbar { width: 6px; }
         #sidebar::-webkit-scrollbar-track { background: #1a1a1a; }
         #sidebar::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
         #sidebar::-webkit-scrollbar-thumb:hover { background: #ffb703; }
-        #content { flex: 1; padding: 15px; text-align: center; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        
+        /* [해결] 툴바 버튼들이 캔버스 투명 박스에 먹히지 않도록 레이어 확보 */
+        #content { 
+            flex: 1; 
+            padding: 15px; 
+            text-align: center; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            box-sizing: border-box; 
+            position: relative; 
+            z-index: 50 !important; /* 사이드바보단 낮고 캔버스보단 위 */
+        }
+        
         .map-btn { display: block; width: 100%; padding: 10px; margin-bottom: 8px; background: #333; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; text-align: left; border-left: 0 solid transparent; }
         .map-btn:hover, .map-btn.active { background: #444; border-left: 4px solid #ffb703; }
         .floor-btn { padding: 8px 16px; margin: 4px; background: #2196F3; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
@@ -18,33 +44,65 @@
         #floor-buttons { margin: 10px 0; min-height: 40px; }
         .mode-btn { padding: 8px 16px; margin: 0 4px; background: #444; color: #fff; border: 1px solid #666; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .mode-btn.active { background: #ffb703; color: #000; border-color: #ffb703; }
-        #canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 10px; background: #151515; border-radius: 8px; position: relative; }
+        
+        #canvas-container { 
+                width: 1280px; 
+                height: 720px; 
+                background: #151515; 
+                border-radius: 8px; 
+                position: absolute; 
+                
+                top: calc(50% - 65px); 
+                left: calc(50% + 120px); 
+                
+                transform-origin: 640px 360px !important; 
+                transform: translate(-50%, -50%) scale(1); 
+                box-shadow: 0px 0px 15px rgba(0,0,0,0.5);
+                z-index: 0 !important; 
+        }
+        
         canvas { 
-            border: 2px solid #444; 
-            box-shadow: 0px 0px 15px rgba(0,0,0,0.5); 
             background-size: contain; 
             background-repeat: no-repeat; 
             background-position: center; 
             background-color: #222; 
-            cursor: crosshair; 
-            width: 100%; 
-            height: 100%; 
-            object-fit: contain; 
             position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
+            top: 0; 
+            left: 0; 
+            width: 1280px; 
+            height: 720px; 
+            cursor: crosshair !important; 
         }
+        
         .clear-btn { padding: 8px 16px; background: #e63946; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 10px; }
-		#brush-cursor {
+        
+        #brush-cursor {
+                position: absolute;
+                border: 1px solid rgba(255, 255, 255, 0.6);
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 50%;
+                pointer-events: none !important; /* 클릭 관통 */
+                display: none;
+                z-index: 100 !important; 
+                
+                box-sizing: border-box !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                
+                transform: translate(-50%, -50%) !important; 
+        }
+        
+        .tactical-marker {
             position: absolute;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            pointer-events: none;
-            display: none;
-            z-index: 100;
-            transform: translate(-50%, -50%);
+            width: 32px !important;
+            height: 32px !important;
+            z-index: 20;
+            cursor: move !important;
+            user-select: none !important;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
@@ -165,6 +223,7 @@
                     <option value="images/gadgets/reinforcement.png">강화제</option>
                 </optgroup>
             </select>
+			<img id="op-preview" src="" style="width: 30px; height: 30px; vertical-align: middle; margin-left: 8px; border-radius: 4px; border: 1px solid #555; background: #333; display: none;">
             <span>|</span><span>색상:</span>
             <input type="color" id="brush-color" value="#ff0000" style="cursor: pointer; width: 35px; height: 25px; border: none; background: transparent;">
             <span>|</span><span>굵기: <span id="size-indicator" style="color: #ffb703;">5</span></span>
@@ -251,27 +310,56 @@
             });
         }
         initMapButtons();
-		        function selectMap(name, btnElement) {
-			document.getElementById('guide-image').style.display = 'none';
-            currentMap = name; document.getElementById('map-title').innerText = name;
-            document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active'));
-            if(btnElement) btnElement.classList.add('active');
-            const fDiv = document.getElementById('floor-buttons'); fDiv.innerHTML = ""; 
-            const floors = Object.keys(mapData[name]); let targetFloor = floors.includes(lastSelectedFloor) ? lastSelectedFloor : floors[0];
-            floors.forEach(f => {
-                const btn = document.createElement('button'); btn.className = 'floor-btn';
-                if(f === targetFloor) btn.classList.add('active'); btn.innerText = f;
-                btn.onclick = () => { lastSelectedFloor = f; document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); changeFloor(f); };
-                fDiv.appendChild(btn);
-            });
-            changeFloor(targetFloor);
+		
+        function selectMap(name, btnElement) {
+                document.getElementById('guide-image').style.display = 'none';
+                currentMap = name; 
+                document.getElementById('map-title').innerText = name;
+                document.querySelectorAll('.map-btn').forEach(b => b.classList.remove('active'));
+                if(btnElement) btnElement.classList.add('active');
+                
+                const fDiv = document.getElementById('floor-buttons'); 
+                fDiv.innerHTML = ""; 
+                const floors = Object.keys(mapData[name]); 
+                let targetFloor = floors.includes(lastSelectedFloor) ? lastSelectedFloor : floors;
+                
+                floors.forEach(f => {
+                        const btn = document.createElement('button'); 
+                        btn.className = 'floor-btn';
+                        if(f === targetFloor) btn.classList.add('active'); 
+                        btn.innerText = f;
+                        btn.onclick = () => { 
+                                lastSelectedFloor = f; 
+                                document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active')); 
+                                btn.classList.add('active'); 
+                                changeFloor(f); 
+                        };
+                        fDiv.appendChild(btn);
+                });
+                
+                scale = 1.0;
+                panX = 0;
+                panY = 0;
+                applyTransform();
+                
+                changeFloor(targetFloor);
         }
 
-        function changeFloor(f) { undoStack = []; stampCanvas.style.backgroundImage = "url('" + mapData[currentMap][f] + "')"; clearCanvas(); }
+        function changeFloor(f) { 
+                undoStack = []; 
+
+                scale = 1.0;
+                panX = 0;
+                panY = 0;
+                applyTransform();
+                
+                stampCanvas.style.backgroundImage = "url('" + mapData[currentMap][f] + "')"; 
+                clearCanvas(); 
+        }
         
         function setMode(m) { currentMode = m; document.getElementById('btn-draw').classList.toggle('active', m === 'draw'); document.getElementById('btn-erase').classList.toggle('active', m === 'erase'); document.getElementById('btn-stamp').classList.toggle('active', m === 'stamp'); }
 		
-        let scale = 1, panX = 0, panY = 0, isPanning = false, startPanX = 0, startPanY = 0;
+        let scale = 1.0, panX = 0, panY = 0, isPanning = false, startPanX = 0, startPanY = 0;
 
         function getCoords(e) {
             return {
@@ -281,31 +369,54 @@
         }
 
         function applyTransform() {
-            const transformStr = `translate(-50%, -50%) translate(${panX}px, ${panY}px) scale(${scale})`;
-            
-            stampCanvas.style.transform = transformStr;
-            canvas.style.transform = transformStr;
+                const container = document.getElementById('canvas-container');
+                if (!container) return;
+                
+                // 이동 수식과 배율 수식을 오차 없이 화면에 1:1 다이렉트로 결착
+                container.style.transform = `translate(-50%, -50%) translate(${panX}px, ${panY}px) scale(${scale})`;
         }
-
         canvas.addEventListener('mousedown', function(e) {
             const p = getCoords(e);
             useRightClickErase = (e.button === 2);
 
             if (e.button === 0 || e.button === 2) saveState();
 
-            if (currentMode === 'stamp' && e.button === 0) {
-                const container = document.getElementById('canvas-container'), imgPath = document.getElementById('stamp-selector').value;
-                const selector = document.getElementById('stamp-selector'), selectedText = selector.options[selector.selectedIndex].text, koreanName = selectedText.split(/[ (]/);
-                const opEl = document.createElement('div'); opEl.className = 'placed-marker';
-                
-                const cRect = container.getBoundingClientRect();
-                opEl.style.cssText = `position:absolute; width:32px; height:32px; z-index:10; cursor:move; user-select:none; left:${e.clientX - cRect.left - 16}px; top:${e.clientY - cRect.top - 16}px;`;
-                
-                const img = new Image();
-                img.onload = function() { opEl.style.backgroundImage = "url('" + imgPath + "')"; opEl.style.backgroundSize = 'contain'; opEl.style.backgroundRepeat = 'no-repeat'; opEl.style.backgroundPosition = 'center'; };
-                img.onerror = function() { opEl.style.cssText += 'background:#ffb703; border:1px solid #fff; border-radius:4px; color:#000; font-size:10px; font-weight:bold; display:flex; align-items:center; justify-content:center;'; opEl.innerText = koreanName; };
-                img.src = imgPath; bindMarkerEvents(opEl); container.appendChild(opEl); return;
-            }
+if (currentMode === 'stamp' && e.button === 0) {
+    const container = document.getElementById('canvas-container'), imgPath = document.getElementById('stamp-selector').value;
+    const selector = document.getElementById('stamp-selector'), selectedText = selector.options[selector.selectedIndex].text, koreanName = selectedText.split(/[ (]/)[0];
+    const opEl = document.createElement('div'); opEl.className = 'tactical-marker';
+    
+    const cRect = container.getBoundingClientRect();
+    // [확대 보정] 마우스 위치를 scale로 나누어 정밀한 캔버스 내부 좌표를 계산합니다.
+    const markerX = (e.clientX - cRect.left) / scale - 16;
+    const markerY = (e.clientY - cRect.top) / scale - 16;
+    opEl.style.cssText = `position:absolute; width:32px; height:32px; z-index:10; cursor:move; user-select:none; left:${markerX}px; top:${markerY}px;`;
+    
+    const img = new Image();
+			img.onload = function() { 
+				opEl.style.backgroundImage = "url('" + imgPath + "')"; 
+				opEl.style.backgroundSize = 'contain'; 
+				opEl.style.backgroundRepeat = 'no-repeat'; 
+				opEl.style.backgroundPosition = 'center'; 
+		};
+			img.onerror = function() { 
+				opEl.style.backgroundColor = '#f15a24';
+				opEl.style.color = '#fff';
+				opEl.style.fontSize = '10px';
+				opEl.style.fontWeight = 'bold';
+				opEl.style.textAlign = 'center';
+				opEl.style.lineHeight = '32px';
+				opEl.style.borderRadius = '4px';
+				opEl.style.border = '1px solid #fff';
+				opEl.textContent = koreanName || 'OP';
+		};
+					img.src = imgPath;
+
+
+					bindMarkerEvents(opEl); 
+					container.appendChild(opEl); 
+					return;
+				}
 
             if (e.button === 1 || (currentMode !== 'stamp' && currentMode !== 'draw' && e.button === 0)) {
                 isPanning = true;
@@ -333,72 +444,114 @@
         });
 
         canvas.addEventListener('mousemove', function(e) {
-            if (isPanning) {
-                panX = e.clientX - startPanX;
-                panY = e.clientY - startPanY;
-                applyTransform();
-                return;
-            }
+                const cursorEl = document.getElementById('brush-cursor');
+                if (currentMode === 'draw' || currentMode === 'erase') {
+                        cursorEl.style.display = 'block';
+                        
+                        // 1. [크기 고정] 브러시 서클 크기를 원본 사이즈로 유지
+                        cursorEl.style.width = currentSize + 'px';
+                        cursorEl.style.height = currentSize + 'px';
+                        
+                        // 2. [🚨 좌측 엇나감 원천 파괴 공식] 
+                        // e.offsetX를 버리고 canvas와 부모 container 사이의 물리적 오차를 직접 계산하여 정조준합니다.
+                        const cRect = canvas.getBoundingClientRect();
+                        const parentRect = document.getElementById('canvas-container').getBoundingClientRect();
+                        
+                        // 현재 마우스 화면 좌표에서 부모 상자의 테두리 시작점을 빼고, 확대 배율(scale)을 나누어 완벽한 1:1 자석 영점을 잡습니다.
+                        const finalX = (e.clientX - parentRect.left) / scale;
+                        const finalY = (e.clientY - parentRect.top) / scale;
+                        
+                        cursorEl.style.left = finalX + 'px';
+                        cursorEl.style.top = finalY + 'px';
+                } else {
+                        cursorEl.style.display = 'none';
+                }
 
-            if (isDrawing && currentMode !== 'stamp') {
-                const p = getCoords(e); 
-                ctx.lineTo(p.x, p.y);
-                ctx.stroke(); 
-            }
+                // 화면 이동(Pan) 연산 처리
+                if (isPanning) {
+                        panX = e.clientX - startPanX;
+                        panY = e.clientY - startPanY;
+                        applyTransform();
+                        return;
+                }
 
-            const cursorEl = document.getElementById('brush-cursor');
-            if (currentMode === 'draw' || currentMode === 'erase') {
-                cursorEl.style.display = 'block';
-                
-                const scaledSize = currentSize * scale;
-                cursorEl.style.width = scaledSize + 'px';
-                cursorEl.style.height = scaledSize + 'px';
-                
-                const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
-                cursorEl.style.left = (e.clientX - containerRect.left) + 'px';
-                cursorEl.style.top = (e.clientY - containerRect.top) + 'px';
-            } else {
-                cursorEl.style.display = 'none';
-            }
+                // 실시간 캔버스 선 드로잉(stroke) 연산
+                if (isDrawing && currentMode !== 'stamp') {
+                        const p = getCoords(e); 
+                        ctx.lineTo(p.x, p.y);
+                        ctx.stroke(); 
+                }
         });
 
         canvas.addEventListener('mouseup', () => { isDrawing = false; isPanning = false; useRightClickErase = false; canvas.style.cursor = 'crosshair'; });
         canvas.addEventListener('mouseout', () => { isDrawing = false; isPanning = false; useRightClickErase = false;
-		document.getElementById('brush-color').style.display = 'none';
 		});
 
         canvas.addEventListener('wheel', function(e) {
-            e.preventDefault();
+				e.preventDefault();
             const zoomSpeed = 0.1;
             if (e.deltaY < 0) scale = Math.min(scale + zoomSpeed, 5);
             else scale = Math.max(scale - zoomSpeed, 0.5);
-            applyTransform();
+				applyTransform();
         }, { passive: false });
 
-        function bindMarkerEvents(opEl) {
-            opEl.addEventListener('contextmenu', function(e) { e.preventDefault(); saveState(); opEl.remove(); });
-            opEl.addEventListener('mousedown', function(downEvent) {
-                if (downEvent.button === 2) return;
-                downEvent.stopPropagation(); saveState();
-                const startX = downEvent.clientX - opEl.offsetLeft, startY = downEvent.clientY - opEl.offsetTop;
-                function onMouseMove(moveEvent) { opEl.style.left = (moveEvent.clientX - startX) + 'px'; opEl.style.top = (moveEvent.clientY - startY) + 'px'; }
-                function onMouseUp() { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); }
-                document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
-            });
+			function bindMarkerEvents(opEl) {
+				opEl.addEventListener('contextmenu', function(e) { 
+				e.preventDefault(); 
+				saveState(); 
+				opEl.remove(); 
+		});
+
+				opEl.addEventListener('mousedown', function(downEvent) {
+			if (downEvent.button === 2) return;
+				downEvent.stopPropagation(); 
+				saveState();
+    
+			const startX = downEvent.clientX;
+			const startY = downEvent.clientY;
+        
+			const origLeft = parseFloat(opEl.style.left) || 0;
+			const origTop = parseFloat(opEl.style.top) || 0;
+
+			function onMouseMove(moveEvent) {
+
+            const dx = (moveEvent.clientX - startX) / scale;
+            const dy = (moveEvent.clientY - startY) / scale;
+
+				opEl.style.left = (origLeft + dx) + 'px';
+				opEl.style.top = (origTop + dy) + 'px';
         }
+
+        function onMouseUp() {
+            // 마우스를 떼는 순간 최상위 window에 등록된 리스너를 파괴하여 고정 및 메모리 누수 차단
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+        }
+
+        // 창 밖으로 마우스가 나가도 끊기지 않도록 최상위 window 객체에 이벤트 결착
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    });
+	}
 		
         function resetPan() {
-            panX = 0;
-            panY = 0;
-            applyTransform();
+                panX = 0;
+                panY = 0;
+                scale = 1.0;
+                
+                applyTransform();
+                
+                const cursorEl = document.getElementById('brush-cursor');
+                if (cursorEl) {
+                        cursorEl.style.display = 'none';
+                }
         }
 
         function clearCanvas() {
-            ctx.globalCompositeOperation = 'source-over'; ctx.clearRect(0, 0, canvas.width, canvas.height);
-            document.querySelectorAll('.placed-marker').forEach(el => el.remove());
-            undoStack = [];
-            scale = 1; panX = 0; panY = 0;
-            applyTransform();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                document.querySelectorAll('.tactical-marker').forEach(function(marker) {
+                        marker.remove();
+                });
         }
     </script>
 </body>
